@@ -48,6 +48,7 @@ def package_files(directory):
 
 install_requires = [
     'yara-python-dex>=1.0.1',
+    'click>=8.0.0',
 ]
 
 dev_requires = [
@@ -104,6 +105,7 @@ setup(
     entry_points={
         'console_scripts': [
             'apkid=apkid.main:main',
+            'ai-apkid=apkid.cli:ai_cli',
         ],
     },
 )

@@ -130,3 +130,46 @@ twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
 ```
 
 For more information see [Packaging Projects](https://packaging.python.org/tutorials/packaging-projects/).
+
+---
+
+## Claude Code Skills
+
+This repository is also a **Claude Code Skills** package. Install it to add APKiD scanning capabilities to your Claude Code agent.
+
+### Install
+
+```bash
+# Add as a skills source
+claude skills add --source https://github.com/rednaga/AI-APKiD
+
+# Or install locally
+claude skills add --source /path/to/AI-APKiD
+```
+
+### Available Skills
+
+| Skill | Command | Description |
+|-------|---------|-------------|
+| `apkid-scan` | `/apkid-scan` | Scan a single APK/DEX/ELF file |
+| `apkid-batch` | `/apkid-batch` | Batch scan a directory of files |
+| `apkid-rule-dev` | `/apkid-rule-dev` | Develop new YARA detection rules |
+
+### AI CLI
+
+The `ai-apkid` command provides structured JSON output designed for AI agent consumption:
+
+```bash
+# Scan a file (JSON output)
+ai-apkid scan /path/to/app.apk
+
+# Batch scan a directory
+ai-apkid batch /path/to/samples/ --recursive
+
+# List all detection tags
+ai-apkid list-tags
+```
+
+### For Skill Developers
+
+Skills are defined in `.claude/skills/` using SKILL.md files with YAML frontmatter. See the [Claude Code Skills documentation](https://docs.anthropic.com/en/docs/claude-code/skills) for details.
