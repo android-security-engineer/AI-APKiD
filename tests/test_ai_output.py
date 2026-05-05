@@ -124,3 +124,35 @@ class TestCLICommands:
             else:
                 # Rules not compiled — verify error is about rules, not our code
                 assert "rules.yarc" in result.stderr or "yara" in result.stderr
+
+    def test_info_command(self):
+        """ai-apkid info outputs version and rules info."""
+        result = subprocess.run(
+            [sys.executable, "-m", "apkid.cli", "info"],
+            capture_output=True, text=True, timeout=30
+        )
+        assert result.returncode == 0
+        data = json.loads(result.stdout)
+        assert "version" in data
+        assert "rules_sha256" in data
+
+    def test_rules_list_command(self):
+        """ai-apkid rules list outputs rule file list."""
+        result = subprocess.run(
+            [sys.executable, "-m", "apkid.cli", "rules", "list"],
+            capture_output=True, text=True, timeout=30
+        )
+        assert result.returncode == 0
+        data = json.loads(result.stdout)
+        assert "rules" in data
+        assert isinstance(data["rules"], list)
+
+    def test_scan_help_shows_all_params(self):
+        """ai-apkid scan --help shows all Options parameters."""
+        result = subprocess.run(
+            [sys.executable, "-m", "apkid.cli", "scan", "--help"],
+            capture_output=True, text=True, timeout=30
+        )
+        assert result.returncode == 0
+        for param in ["--typing", "--scan-depth", "--entry-max-scan-size", "--include-types", "--timeout"]:
+            assert param in result.stdout, f"Missing {param} in scan --help"
