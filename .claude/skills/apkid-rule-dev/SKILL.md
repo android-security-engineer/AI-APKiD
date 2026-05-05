@@ -57,6 +57,24 @@ Use one of: `packer`, `protector`, `obfuscator`, `signer`, `compiler`, `anti_vm`
 ai-apkid list-tags
 ```
 
+### Show version and rules info
+
+```bash
+ai-apkid info
+```
+
+### List YARA rule source files
+
+```bash
+ai-apkid rules list
+```
+
+### Compile YARA rules
+
+```bash
+ai-apkid rules compile
+```
+
 ### Test a new rule against a sample
 
 ```bash

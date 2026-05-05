@@ -42,6 +42,25 @@ ai-apkid scan <file_path> --format text
 ai-apkid scan <file_path> --output results.json
 ```
 
+### Scan with all options
+
+```bash
+ai-apkid scan <file_path> --typing magic --scan-depth 2 --timeout 30 --entry-max-scan-size 0 --include-types --format json
+```
+
+### Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `--format`, `-f` | json | Output format: json or text |
+| `--timeout`, `-t` | 30 | YARA scan timeout in seconds |
+| `--typing` | magic | File identification: magic (bytes), filename (extension), none (scan all) |
+| `--scan-depth` | 2 | Max recursion depth for nested ZIP archives |
+| `--entry-max-scan-size` | 0 | Max ZIP entry size to scan in bytes (0 = no limit) |
+| `--include-types` | false | Include file_type detections in results |
+| `--output`, `-o` | stdout | Write result to file |
+| `--verbose`, `-v` | false | Log debug messages to stderr |
+
 ## Output Format
 
 The default output is JSON with this structure:

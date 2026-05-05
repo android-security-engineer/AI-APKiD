@@ -41,6 +41,27 @@ ai-apkid batch <directory_path> --recursive --pattern "*.apk"
 ai-apkid batch <directory_path> --output batch_results.json
 ```
 
+### Batch scan with all options
+
+```bash
+ai-apkid batch <directory_path> --recursive --pattern "*.apk" --typing magic --scan-depth 2 --timeout 30 --include-types
+```
+
+### Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `--recursive`, `-r` | false | Scan subdirectories recursively |
+| `--pattern`, `-p` | *.apk | File glob pattern |
+| `--format`, `-f` | json | Output format: json or text |
+| `--timeout`, `-t` | 30 | YARA scan timeout in seconds |
+| `--typing` | magic | File identification: magic, filename, none |
+| `--scan-depth` | 2 | Max recursion depth for nested ZIP archives |
+| `--entry-max-scan-size` | 0 | Max ZIP entry size to scan in bytes (0 = no limit) |
+| `--include-types` | false | Include file_type detections in results |
+| `--output`, `-o` | stdout | Write result to file |
+| `--verbose`, `-v` | false | Log debug messages to stderr |
+
 ## Output Format
 
 ```json
