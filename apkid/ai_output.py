@@ -56,39 +56,41 @@ RULE_DESCRIPTIONS = {
 class AIOutputFormatter:
     """Formats APKiD scan results for AI agent consumption."""
 
-    def format(self, results: Dict[str, List[yara.Match]], target: str, fmt: str = "json") -> str:
+    def format(self, results: Dict[str, List[yara.Match]], target: str, fmt: str = "json", include_types: bool = False) -> str:
         """Format scan results into the specified output format.
 
         Args:
             results: Raw scan results dict from Scanner.scan_file()
             target: Path to the scanned file
             fmt: Output format - 'json' or 'text'
+            include_types: If True, include file_type detections
 
         Returns:
             Formatted output string
         """
         if fmt == "text":
-            return self._format_text(results, target)
-        return self._format_json(results, target)
+            return self._format_text(results, target, include_types=include_types)
+        return self._format_json(results, target, include_types=include_types)
 
-    def format_dict(self, results: Dict[str, List[yara.Match]], target: str) -> Dict:
+    def format_dict(self, results: Dict[str, List[yara.Match]], target: str, include_types: bool = False) -> Dict:
         """Format scan results into a dictionary for batch aggregation.
 
         Args:
             results: Raw scan results dict from Scanner.scan_file()
             target: Path to the scanned file
+            include_types: If True, include file_type detections
 
         Returns:
             Dictionary with structured scan results
         """
-        return self._build_result_dict(results, target)
+        return self._build_result_dict(results, target, include_types=include_types)
 
-    def _format_json(self, results: Dict[str, List[yara.Match]], target: str) -> str:
-        result_dict = self._build_result_dict(results, target)
+    def _format_json(self, results: Dict[str, List[yara.Match]], target: str, include_types: bool = False) -> str:
+        result_dict = self._build_result_dict(results, target, include_types=include_types)
         return json.dumps(result_dict, ensure_ascii=False, indent=2)
 
-    def _format_text(self, results: Dict[str, List[yara.Match]], target: str) -> str:
-        result_dict = self._build_result_dict(results, target)
+    def _format_text(self, results: Dict[str, List[yara.Match]], target: str, include_types: bool = False) -> str:
+        result_dict = self._build_result_dict(results, target, include_types=include_types)
         lines = [f"Target: {result_dict['target']}", ""]
         for finding in result_dict.get("findings", []):
             lines.append(f"  [{finding['category']}] {finding['identifier']}")
@@ -100,8 +102,8 @@ class AIOutputFormatter:
         lines.append(f"Scanned at: {result_dict['scanned_at']}")
         return "\n".join(lines)
 
-    def _build_result_dict(self, results: Dict[str, List[yara.Match]], target: str) -> Dict:
-        findings = self._extract_findings(results)
+    def _build_result_dict(self, results: Dict[str, List[yara.Match]], target: str, include_types: bool = False) -> Dict:
+        findings = self._extract_findings(results, include_types=include_types)
         return {
             "error": False,
             "target": target,
@@ -110,7 +112,7 @@ class AIOutputFormatter:
             "scanned_at": datetime.now(timezone.utc).isoformat(),
         }
 
-    def _extract_findings(self, results: Any) -> List[Dict]:
+    def _extract_findings(self, results: Any, include_types: bool = False) -> List[Dict]:
         findings = []
         if results is None:
             return findings
@@ -119,16 +121,16 @@ class AIOutputFormatter:
                 if isinstance(matches, list):
                     for match in matches:
                         if isinstance(match, yara.Match):
-                            findings.extend(self._match_to_findings(match, file_path))
+                            findings.extend(self._match_to_findings(match, file_path, include_types=include_types))
                         elif isinstance(match, str):
                             findings.append(self._tag_to_finding(match, file_path))
         return findings
 
-    def _match_to_findings(self, match: yara.Match, source: str) -> List[Dict]:
+    def _match_to_findings(self, match: yara.Match, source: str, include_types: bool = False) -> List[Dict]:
         findings = []
         description = match.meta.get('description', match.rule)
         for tag in match.tags:
-            if tag == 'file_type':
+            if tag == 'file_type' and not include_types:
                 continue
             category = self._categorize_tag(tag)
             findings.append({
