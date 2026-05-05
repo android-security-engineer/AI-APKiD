@@ -48,7 +48,8 @@ def package_files(directory):
 
 install_requires = [
     'yara-python-dex>=1.0.1',
-    'click>=8.0.0',
+    'typer>=0.12.0',
+    'rich>=13.0.0',
 ]
 
 dev_requires = [
