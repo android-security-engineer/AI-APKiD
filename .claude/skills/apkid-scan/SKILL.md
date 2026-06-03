@@ -1,7 +1,7 @@
 ---
 name: apkid-scan
-description: Scan Android APK/DEX/ELF files for packer, signer, compiler, and protector identifiers using AI-APKiD
-allowed-tools: "Bash(ai-apkid:*)"
+description: Use when analyzing an APK, DEX, or ELF file to identify packers, protectors, obfuscators, compilers, signers, or anti-debug/anti-VM techniques
+allowed-tools: "Bash(apkid-ai-cli:*)"
 ---
 
 # APKiD Scan
@@ -27,25 +27,25 @@ Scan Android APK, DEX, or ELF files to identify packers, signers, compilers, obf
 ### Scan a single file
 
 ```bash
-ai-apkid scan <file_path>
+apkid-ai-cli scan <file_path>
 ```
 
 ### Scan with text output (human-readable)
 
 ```bash
-ai-apkid scan <file_path> --format text
+apkid-ai-cli scan <file_path> --format text
 ```
 
 ### Scan and save to file
 
 ```bash
-ai-apkid scan <file_path> --output results.json
+apkid-ai-cli scan <file_path> --output results.json
 ```
 
 ### Scan with all options
 
 ```bash
-ai-apkid scan <file_path> --typing magic --scan-depth 2 --timeout 30 --entry-max-scan-size 0 --include-types --format json
+apkid-ai-cli scan <file_path> --typing magic --scan-depth 2 --timeout 30 --entry-max-scan-size 0 --include-types --format json
 ```
 
 ### Parameters
@@ -120,18 +120,18 @@ Error output (on stderr):
 ### Scan an APK file
 
 User: "Scan this APK for packers"
-Action: Run `ai-apkid scan /path/to/app.apk`
+Action: Run `apkid-ai-cli scan /path/to/app.apk`
 Then: Report the findings, highlighting packer and protector categories
 
 ### Check for anti-debug techniques
 
 User: "Does this APK use anti-debugging?"
-Action: Run `ai-apkid scan /path/to/app.apk`
+Action: Run `apkid-ai-cli scan /path/to/app.apk`
 Then: Filter findings for category "anti_debug" and report
 
 ## Notes
 
-- The `ai-apkid` command must be installed (`pip install apkid`)
+- The `apkid-ai-cli` command must be installed (`pip install apkid`)
 - Supports APK, DEX, and ELF file formats
-- Default timeout is 60 seconds, use `--timeout` for larger files
+- Default timeout is 30 seconds, use `--timeout` for larger files
 - All output is UTF-8 encoded

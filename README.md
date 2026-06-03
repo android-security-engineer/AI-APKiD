@@ -157,17 +157,17 @@ claude skills add --source /path/to/AI-APKiD
 
 ### AI CLI
 
-The `ai-apkid` command provides structured JSON output designed for AI agent consumption:
+The `apkid-ai-cli` command provides structured JSON output designed for AI agent consumption:
 
 ```bash
 # Scan a file (JSON output)
-ai-apkid scan /path/to/app.apk
+apkid-ai-cli scan /path/to/app.apk
 
 # Batch scan a directory
-ai-apkid batch /path/to/samples/ --recursive
+apkid-ai-cli batch /path/to/samples/ --recursive
 
 # List all detection tags
-ai-apkid list-tags
+apkid-ai-cli list-tags
 ```
 
 ### For Skill Developers

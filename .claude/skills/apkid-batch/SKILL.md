@@ -1,7 +1,7 @@
 ---
 name: apkid-batch
-description: Batch scan directories of Android APK/DEX/ELF files for packer and protector identifiers
-allowed-tools: "Bash(ai-apkid:*)"
+description: Use when scanning a directory of APK/DEX/ELF files to identify packers, protectors, obfuscators, and compilers across multiple samples
+allowed-tools: "Bash(apkid-ai-cli:*)"
 ---
 
 # APKiD Batch Scan
@@ -26,25 +26,25 @@ Batch scan directories of Android APK, DEX, or ELF files to identify packers, si
 ### Batch scan a directory
 
 ```bash
-ai-apkid batch <directory_path>
+apkid-ai-cli batch <directory_path>
 ```
 
 ### Recursive scan with custom pattern
 
 ```bash
-ai-apkid batch <directory_path> --recursive --pattern "*.apk"
+apkid-ai-cli batch <directory_path> --recursive --pattern "*.apk"
 ```
 
 ### Save batch results to file
 
 ```bash
-ai-apkid batch <directory_path> --output batch_results.json
+apkid-ai-cli batch <directory_path> --output batch_results.json
 ```
 
 ### Batch scan with all options
 
 ```bash
-ai-apkid batch <directory_path> --recursive --pattern "*.apk" --typing magic --scan-depth 2 --timeout 30 --include-types
+apkid-ai-cli batch <directory_path> --recursive --pattern "*.apk" --typing magic --scan-depth 2 --timeout 30 --include-types
 ```
 
 ### Parameters
@@ -84,13 +84,13 @@ ai-apkid batch <directory_path> --recursive --pattern "*.apk" --typing magic --s
 ### Scan all APKs in a directory
 
 User: "Scan all APKs in /data/samples/"
-Action: Run `ai-apkid batch /data/samples/`
+Action: Run `apkid-ai-cli batch /data/samples/`
 Then: Present a summary table showing each APK and its detected packers/protectors
 
 ### Find all APKs using a specific packer
 
 User: "Which APKs use Bangcle packer?"
-Action: Run `ai-apkid batch /data/samples/ -r`
+Action: Run `apkid-ai-cli batch /data/samples/ -r`
 Then: Filter results for findings with identifier "bangcle" and list matching APKs
 
 ## Notes

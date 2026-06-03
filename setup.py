@@ -101,12 +101,16 @@ setup(
     extras_require={
         'dev': dev_requires,
         'test': test_requires,
+        'mcp': [
+            'mcp>=1.0.0,<2.0.0',
+        ],
     },
     zip_safe=False,
     entry_points={
         'console_scripts': [
             'apkid=apkid.main:main',
-            'ai-apkid=apkid.cli:ai_cli',
+            'apkid-ai-cli=apkid.cli:ai_cli',
+            'apkid-mcp=apkid.mcp:run',
         ],
     },
 )

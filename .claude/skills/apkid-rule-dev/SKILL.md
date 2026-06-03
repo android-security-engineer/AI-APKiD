@@ -1,7 +1,11 @@
 ---
 name: apkid-rule-dev
-description: Develop and test YARA rules for AI-APKiD to detect new packers, protectors, and obfuscators
-allowed-tools: "Read, Write, Edit, Bash(ai-apkid:*, python:*)"
+description: Use when developing or testing YARA rules to detect new packers, protectors, obfuscators, or other Android binary identifiers
+allowed-tools:
+  - "Read"
+  - "Write"
+  - "Edit"
+  - "Bash(apkid-ai-cli:*, python:*)"
 ---
 
 # APKiD Rule Development
@@ -54,40 +58,40 @@ Use one of: `packer`, `protector`, `obfuscator`, `signer`, `compiler`, `anti_vm`
 ### List all existing detection tags
 
 ```bash
-ai-apkid list-tags
+apkid-ai-cli list-tags
 ```
 
 ### Show version and rules info
 
 ```bash
-ai-apkid info
+apkid-ai-cli info
 ```
 
 ### List YARA rule source files
 
 ```bash
-ai-apkid rules list
+apkid-ai-cli rules list
 ```
 
 ### Compile YARA rules
 
 ```bash
-ai-apkid rules compile
+apkid-ai-cli rules compile
 ```
 
 ### Test a new rule against a sample
 
 ```bash
-ai-apkid scan <sample_file>
+apkid-ai-cli scan <sample_file>
 ```
 
 ## Workflow
 
-1. Run `ai-apkid list-tags` to check if a similar rule already exists
+1. Run `apkid-ai-cli list-tags` to check if a similar rule already exists
 2. Read existing rules in `apkid/rules/` for format reference
 3. Add new rule to the appropriate category `.yara` file in `apkid/rules/`
 4. Run `python prep-release.py` to compile rules into `rules.yarc`
-5. Run `ai-apkid scan <sample>` to verify detection
+5. Run `apkid-ai-cli scan <sample>` to verify detection
 6. Test against clean samples to check for false positives
 
 ## Examples
@@ -96,11 +100,11 @@ ai-apkid scan <sample_file>
 
 User: "Add a rule to detect NewPacker"
 Action:
-1. Check `ai-apkid list-tags` for existing "newpacker" entries
+1. Check `apkid-ai-cli list-tags` for existing "newpacker" entries
 2. Read `apkid/rules/dex/packers.yara` as a format reference
 3. Add new rule to `apkid/rules/dex/packers.yara` with appropriate strings
 4. Run `python prep-release.py` to compile
-5. Test with `ai-apkid scan <sample_using_newpacker>`
+5. Test with `apkid-ai-cli scan <sample_using_newpacker>`
 
 ## Notes
 
