@@ -13,7 +13,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 
 RUN python -m pip install yara-python-dex>=1.0.5 \
     && python prep-release.py \
-    && python -m pip install .
+    && python -m pip install ".[mcp]"
 
 # Place to bind a mount point to for scratch pad work
 RUN mkdir /input
@@ -23,4 +23,7 @@ RUN chown -R appuser:appuser /apkid && \
     chown -R appuser:appuser /input
 USER appuser
 
+# Default: classic CLI. Override to use AI CLI or MCP server:
+#   docker run --rm rednaga:apkid apkid-ai-cli scan /input/app.apk
+#   docker run --rm -i rednaga:apkid apkid-mcp
 ENTRYPOINT ["apkid"]

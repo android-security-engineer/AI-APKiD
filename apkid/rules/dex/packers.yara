@@ -759,3 +759,244 @@ rule manxi_sec : packer
   condition:
     is_dex and any of them
 }
+
+// ---------------------------------------------------------------------------
+// DEX-level rules for major Chinese shell packers
+// These match stub/loader class names in the DEX string_pool, providing
+// higher-confidence detection than APK-level lib path matching which
+// breaks when the native library path is renamed or obfuscated.
+// ---------------------------------------------------------------------------
+
+rule jiagu_360_dex : packer
+{
+  meta:
+    description = "Qihoo 360 Jiagu (DEX-level)"
+    url         = "http://jiagu.360.cn/"
+    author      = "APKiD-skills"
+
+  strings:
+    // Lcom/stub/StubApp; — classic 360 jiagu stub Application class
+    $stub_app = {
+      00 12 4C 63 6F 6D 2F 73 74 75 62 2F 53 74 75 62
+      41 70 70 3B 00
+    }
+    // Lcom/qihoo/util/StubApp; — alternate 360 stub path
+    $qihoo_stub = {
+      00 1A 4C 63 6F 6D 2F 71 69 68 6F 6F 2F 75 74 69
+      6C 2F 53 74 75 62 41 70 70 3B 00
+    }
+    // Lcom/stub/StubXXXXApp; — newer versions with random suffix
+    $stub_random = {
+      00 1E 4C 63 6F 6D 2F 73 74 75 62 2F 53 74 75 62
+      [8-16] 41 70 70 3B 00
+    }
+    // com.stub — package string used by 360 jiagu loader
+    $pkg_stub = { 00 08 63 6F 6D 2E 73 74 75 62 00 }
+
+  condition:
+    is_dex and any of them
+}
+
+rule tencent_legu_dex : packer
+{
+  meta:
+    description = "Tencent Legu (DEX-level)"
+    url         = "https://cloud.tencent.com/product/ms"
+    author      = "APKiD-skills"
+
+  strings:
+    // Lcom/tencent/StubShell/TxAppEntry; — Legu-specific entry point
+    $tx_entry = {
+      00 22 4C 63 6F 6D 2F 74 65 6E 63 65 6E 74 2F 53
+      74 75 62 53 68 65 6C 6C 2F 54 78 41 70 70 45 6E
+      74 72 79 3B 00
+    }
+    // Lcom/tencent/legu/StubApp; — Legu branded stub
+    $legu_stub = {
+      00 1A 4C 63 6F 6D 2F 74 65 6E 63 65 6E 74 2F 6C
+      65 67 75 2F 53 74 75 62 41 70 70 3B 00
+    }
+    // Lcom/tencent/StubShell/ShellHelper; — shell helper class
+    $shell_helper = {
+      00 25 4C 63 6F 6D 2F 74 65 6E 63 65 6E 74 2F 53
+      74 75 62 53 68 65 6C 6C 2F 53 68 65 6C 6C 48 65
+      6C 70 65 72 3B 00
+    }
+
+  condition:
+    is_dex and any of them
+}
+
+rule bangcle_dex : packer
+{
+  meta:
+    description = "Bangcle (DEX-level)"
+    url         = "https://www.bangcle.com/"
+    author      = "APKiD-skills"
+
+  strings:
+    // Lcom/bangcle/ShellApplication; — Bangcle shell application
+    $shell_app = {
+      00 1E 4C 63 6F 6D 2F 62 61 6E 67 63 6C 65 2F 53
+      68 65 6C 6C 41 70 70 6C 69 63 61 74 69 6F 6E 3B
+      00
+    }
+    // Lcom/secneo/apkwrapper/ShellApplication; — SecNeo/Bangcle variant
+    $secneo_shell = {
+      00 2B 4C 63 6F 6D 2F 73 65 63 6E 65 6F 2F 61 70
+      6B 77 72 61 70 70 65 72 2F 53 68 65 6C 6C 41 70
+      70 6C 69 63 61 74 69 6F 6E 3B 00
+    }
+    // Lcom/secneo/DataProvider; — SecNeo data provider
+    $data_provider = {
+      00 1A 4C 63 6F 6D 2F 73 65 63 6E 65 6F 2F 44 61
+      74 61 50 72 6F 76 69 64 65 72 3B 00
+    }
+    // Lcom/bangcle/clazz/ClassLoaderHelper; — classloader helper
+    $classloader = {
+      00 26 4C 63 6F 6D 2F 62 61 6E 67 63 6C 65 2F 63
+      6C 61 7A 7A 2F 43 6C 61 73 73 4C 6F 61 64 65 72
+      48 65 6C 70 65 72 3B 00
+    }
+
+  condition:
+    is_dex and any of them
+}
+
+rule ijiami_dex : packer
+{
+  meta:
+    description = "Ijiami (DEX-level)"
+    url         = "https://www.ijiami.cn/"
+    author      = "APKiD-skills"
+
+  strings:
+    // Lcom/ijiami/ShellApp; — ijiami shell application stub
+    $shell_app = {
+      00 14 4C 63 6F 6D 2F 69 6A 69 61 6D 69 2F 53 68
+      65 6C 6C 41 70 70 3B 00
+    }
+    // Lcom/ijiami/AutoService; — ijiami auto service
+    $auto_service = {
+      00 19 4C 63 6F 6D 2F 69 6A 69 61 6D 69 2F 41 75
+      74 6F 53 65 72 76 69 63 65 3B 00
+    }
+    // Lcom/ijiami/ijiamiSec; — ijiami security class
+    $sec_class = {
+      00 17 4C 63 6F 6D 2F 69 6A 69 61 6D 69 2F 69 6A
+      69 61 6D 69 53 65 63 3B 00
+    }
+    // "ijiami" string in DEX string_pool
+    $ijiami_str = { 00 06 69 6A 69 61 6D 69 00 }
+
+  condition:
+    is_dex and any of them
+}
+
+rule alibaba_jiagu_dex : packer
+{
+  meta:
+    description = "Alibaba Jiagu (DEX-level)"
+    url         = "https://www.alibabacloud.com/zh/product/mpaas"
+    author      = "APKiD-skills"
+
+  strings:
+    // Lcom/taobao/windvm/packages/WindVmPackage; — Alibaba WindVM
+    $windvm = {
+      00 2B 4C 63 6F 6D 2F 74 61 6F 62 61 6F 2F 77 69
+      6E 64 76 6D 2F 70 61 63 6B 61 67 65 73 2F 57 69
+      6E 64 56 6D 50 61 63 6B 61 67 65 3B 00
+    }
+    // Lcom/ali/windvmmutex/Mutex; — Alibaba WindVM mutex
+    $mutex = {
+      00 22 4C 63 6F 6D 2F 61 6C 69 2F 77 69 6E 64 76
+      6D 6D 75 74 65 78 2F 4D 75 74 65 78 3B 00
+    }
+    // Lcom/ali/mobisecenhance/StubApplication; — Alibaba jiagu stub
+    $stub_app = {
+      00 27 4C 63 6F 6D 2F 61 6C 69 2F 6D 6F 62 69 73
+      65 63 65 6E 68 61 6E 63 65 2F 53 74 75 62 41 70
+      70 6C 69 63 61 74 69 6F 6E 3B 00
+    }
+
+  condition:
+    is_dex and any of them
+}
+
+rule tencent_mtp_dex : packer
+{
+  meta:
+    description = "Mobile Tencent Protect (DEX-level, non-Legu variant)"
+    url         = "https://intl.cloud.tencent.com/product/mtp"
+    author      = "APKiD-skills"
+
+  strings:
+    // libshella.so string reference
+    $libshell_a = { 00 0C 6C 69 62 73 68 65 6C 6C 61 2E 73 6F 00 }
+    // libmobisecy.so reference
+    $libmobisec = { 00 0E 6C 69 62 6D 6F 62 69 73 65 63 79 2E 73 6F 00 }
+    // /mix.dex — Tencent MTP mixed dex indicator
+    $mix_dex = { 00 08 2F 6D 69 78 2E 64 65 78 00 }
+    // Lcom/tencent/StubShell/a; — StubShell helper class
+    $stub_a = {
+      00 19 4C 63 6F 6D 2F 74 65 6E 63 65 6E 74 2F 53
+      74 75 62 53 68 65 6C 6C 2F 61 3B 00
+    }
+
+  condition:
+    is_dex and 2 of them
+}
+
+rule baidu_jiagu_dex : packer
+{
+  meta:
+    description = "Baidu Jiagu (DEX-level)"
+    url         = "https://developer.baidu.com/"
+    author      = "APKiD-skills"
+
+  strings:
+    // Lcom/baidu/protect/ProtectApplication; — Baidu jiagu stub
+    $protect_app = {
+      00 27 4C 63 6F 6D 2F 62 61 69 64 75 2F 70 72 6F
+      74 65 63 74 2F 50 72 6F 74 65 63 74 41 70 70 6C
+      69 63 61 74 69 6F 6E 3B 00
+    }
+    // Lcom/baidu/protect/Boot; — Baidu boot class
+    $boot = {
+      00 17 4C 63 6F 6D 2F 62 61 69 64 75 2F 70 72 6F
+      74 65 63 74 2F 42 6F 6F 74 3B 00
+    }
+    // libbaiduprotect.so string reference
+    $lib = { 00 12 6C 69 62 62 61 69 64 75 70 72 6F 74 65 63 74 2E 73 6F 00 }
+
+  condition:
+    is_dex and any of them
+}
+
+rule secneo_dex : packer
+{
+  meta:
+    description = "SecNeo (DEX-level)"
+    url         = "http://www.secneo.com"
+    author      = "APKiD-skills"
+
+  strings:
+    // Lcom/secneo/core/Entry;
+    $entry = {
+      00 18 4C 63 6F 6D 2F 73 65 63 6E 65 6F 2F 63 6F
+      72 65 2F 45 6E 74 72 79 3B 00
+    }
+    // Lcom/secneo/core/Hook;
+    $hook = {
+      00 17 4C 63 6F 6D 2F 73 65 63 6E 65 6F 2F 63 6F
+      72 65 2F 48 6F 6F 6B 3B 00
+    }
+    // Lcom/secneo/DataProvider;
+    $data_provider = {
+      00 1A 4C 63 6F 6D 2F 73 65 63 6E 65 6F 2F 44 61
+      74 61 50 72 6F 76 69 64 65 72 3B 00
+    }
+
+  condition:
+    is_dex and any of them
+}

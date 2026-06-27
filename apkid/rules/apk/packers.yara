@@ -1216,3 +1216,142 @@ rule venustech : packer
   condition:
     is_apk and all of them
 }
+
+// ---------------------------------------------------------------------------
+// Shell version variant rules
+// These distinguish between different versions/editions of major Chinese
+// shell packers, using combined lib path + asset pattern + version strings.
+// ---------------------------------------------------------------------------
+
+rule jiagu_360_v4 : packer
+{
+  meta:
+    description = "Qihoo 360 Jiagu v4"
+    url         = "http://jiagu.360.cn/"
+    author      = "APKiD-skills"
+
+  strings:
+    // v4 uses libjiagu.so with specific versioned paths
+    $lib_art = /lib\/(arm.*|x86.*)\/libjiagu_art\.so/
+    $lib_dvm = /lib\/(arm.*|x86.*)\/libjiagu\.so/
+
+  condition:
+    is_apk and ($lib_art or $lib_dvm) and not jiagu_a
+}
+
+rule jiagu_360_v5 : packer
+{
+  meta:
+    description = "Qihoo 360 Jiagu v5"
+    url         = "http://jiagu.360.cn/"
+    author      = "APKiD-skills"
+
+  strings:
+    // v5 uses libjiagu_64.so and libjiagu_so_64.so for arm64
+    $lib64 = /lib\/(arm64.*)\/libjiagu(_so)?_64\.so/
+    $lib32 = /lib\/(armeabi.*)\/libjiagu(_so)?\.so/
+
+  condition:
+    is_apk and $lib64 and ($lib32 or $lib64)
+    and not jiagu_a
+}
+
+rule jiagu_360_v6 : packer
+{
+  meta:
+    description = "Qihoo 360 Jiagu v6 (enhanced)"
+    url         = "http://jiagu.360.cn/"
+    author      = "APKiD-skills"
+
+  strings:
+    // v6 uses libjiagu_v6.so naming
+    $lib_v6 = /lib\/(arm.*|x86.*)\/libjiagu_v6\.so/
+    // Also possible: assets/ with .dat files for encrypted dex
+    $encrypted_dex = /assets\/[0-9a-f]{32,64}\.dat/
+
+  condition:
+    is_apk and $lib_v6 and ($encrypted_dex or jiagu)
+}
+
+rule tencent_legu_2024 : packer
+{
+  meta:
+    description = "Tencent Legu (2024+ version)"
+    url         = "https://cloud.tencent.com/product/ms"
+    author      = "APKiD-skills"
+
+  strings:
+    // Newer Legu versions use libshella-xxx.so with year suffix
+    $lib_new = /lib\/(arm.*|x86.*)\/libshell(a|x)-\d+\.\d+\.\d+\.\d+\.so/
+    // 2024+ versions add tpatch_ prefix assets
+    $tpatch = /assets\/tpatch_.*\.dat/
+
+  condition:
+    is_apk and $lib_new and ($tpatch or tencent_a or tencent or tencent_b)
+}
+
+rule bangcle_secshell_vmp : packer
+{
+  meta:
+    description = "Bangcle SecShell (VMP edition)"
+    url         = "https://www.bangcle.com/"
+    author      = "APKiD-skills"
+
+  strings:
+    // VMP edition has libSecShell.so + libSecShellEx.so
+    $main = /lib\/(arm.*|x86.*)\/libSecShell\.so/
+    $vmp  = /lib\/(arm.*|x86.*)\/libSecShellEx\.so/
+    $asset = "assets/secData0.jar"
+
+  condition:
+    is_apk and 2 of them and bangcle_secshell
+}
+
+rule bangcle_standard : packer
+{
+  meta:
+    description = "Bangcle (standard edition)"
+    url         = "https://www.bangcle.com/"
+    author      = "APKiD-skills"
+
+  strings:
+    $main_lib = "libsecexe.so"
+    $second_lib = "libsecmain.so"
+
+  condition:
+    is_apk and bangcle and ($main_lib or $second_lib)
+    and not bangcle_secshell
+}
+
+rule ijiami_pro : packer
+{
+  meta:
+    description = "Ijiami Pro (enterprise edition)"
+    url         = "https://www.ijiami.cn/"
+    author      = "APKiD-skills"
+
+  strings:
+    // Pro/enterprise edition uses different lib naming
+    $lib_pro = /lib\/(arm.*|x86.*)\/libijmDataEncryption\.so/
+    $dat = "assets/IJMDal.Data"
+
+  condition:
+    is_apk and ijiami and ($lib_pro or $dat)
+}
+
+rule alibaba_jiagu_v2 : packer
+{
+  meta:
+    description = "Alibaba Jiagu v2 (mobisecenhance)"
+    url         = "https://www.alibabacloud.com/zh/product/mpaas"
+    author      = "APKiD-skills"
+
+  strings:
+    // v2 uses libmobisec.so as primary
+    $lib = /lib\/(arm.*|x86.*)\/libmobisec\.so/
+    // v2 also ships libmobisecy.so for dynamic loading
+    $lib_y = /lib\/(arm.*|x86.*)\/libmobisecy\.so/
+
+  condition:
+    is_apk and alibaba and ($lib or $lib_y)
+}

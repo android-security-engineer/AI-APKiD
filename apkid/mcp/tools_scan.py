@@ -4,12 +4,12 @@ These adapters bridge MCP tool calls to APKiD's existing scanner
 infrastructure. They use `common.make_scanner()` and
 `AIOutputFormatter` — the same code path as the CLI commands.
 
-All functions return Python dicts, not JSON strings. The FastMCP
-framework handles serialization to the MCP protocol automatically.
+All functions return JSON strings. FastMCP wraps them as text content
+in the MCP protocol response.
 """
 
+import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
 from apkid.ai_output import AIOutputFormatter
 from apkid.cli.common import make_scanner
@@ -22,7 +22,7 @@ def scan_file(
     typing: str = "magic",
     scan_depth: int = 2,
     include_types: bool = False,
-) -> Dict[str, Any]:
+) -> str:
     """Scan an APK, DEX, or ELF file for packer/signer/compiler/protector identifiers.
 
     Args:
@@ -33,10 +33,10 @@ def scan_file(
         include_types: Include file_type detections in results
 
     Returns:
-        Dict with scan results including findings and summary
+        JSON string with scan results including findings and summary
     """
     if not Path(target).exists():
-        return {"error": True, "message": f"File not found: {target}"}
+        return json.dumps({"error": True, "message": f"File not found: {target}"})
     try:
         scanner = make_scanner(
             timeout=timeout,
@@ -48,9 +48,9 @@ def scan_file(
         results = scanner.scan_file(target)
         formatter = AIOutputFormatter()
         result_dict = formatter.format_dict(results, target, include_types=include_types)
-        return result_dict
+        return json.dumps(result_dict, ensure_ascii=False)
     except Exception as e:
-        return {"error": True, "message": str(e), "detail": type(e).__name__}
+        return json.dumps({"error": True, "message": str(e), "detail": type(e).__name__})
 
 
 def batch_scan(
@@ -61,7 +61,7 @@ def batch_scan(
     typing: str = "magic",
     scan_depth: int = 2,
     include_types: bool = False,
-) -> Dict[str, Any]:
+) -> str:
     """Batch scan files in a directory for packer/signer/compiler/protector identifiers.
 
     Args:
@@ -74,11 +74,11 @@ def batch_scan(
         include_types: Include file_type detections in results
 
     Returns:
-        Dict with batch scan results
+        JSON string with batch scan results
     """
     dir_path = Path(directory)
     if not dir_path.is_dir():
-        return {"error": True, "message": f"Directory not found: {directory}"}
+        return json.dumps({"error": True, "message": f"Directory not found: {directory}"})
     try:
         scanner = make_scanner(
             timeout=timeout,
@@ -93,24 +93,24 @@ def batch_scan(
         else:
             files = sorted(dir_path.glob(pattern))
         if not files:
-            return {
+            return json.dumps({
                 "error": False,
                 "scanned": 0,
                 "results": [],
                 "message": f"No files matching '{pattern}' found in {directory}",
-            }
+            })
         all_results = []
         for f in files:
             results = scanner.scan_file(str(f))
             result_dict = formatter.format_dict(results, str(f), include_types=include_types)
             all_results.append(result_dict)
-        return {
+        return json.dumps({
             "error": False,
             "scanned": len(all_results),
             "results": all_results,
-        }
+        }, ensure_ascii=False)
     except Exception as e:
-        return {"error": True, "message": str(e), "detail": type(e).__name__}
+        return json.dumps({"error": True, "message": str(e), "detail": type(e).__name__})
 
 
 def diff_files(
@@ -120,7 +120,7 @@ def diff_files(
     typing: str = "magic",
     scan_depth: int = 2,
     include_types: bool = False,
-) -> Dict[str, Any]:
+) -> str:
     """Compare scan results between two files to find protection differences.
 
     Args:
@@ -132,11 +132,11 @@ def diff_files(
         include_types: Include file_type detections in results
 
     Returns:
-        Dict with diff results showing added/removed/common protections
+        JSON string with diff results showing added/removed/common protections
     """
     for f, label in [(file1, "file1"), (file2, "file2")]:
         if not Path(f).exists():
-            return {"error": True, "message": f"{label} not found: {f}"}
+            return json.dumps({"error": True, "message": f"{label} not found: {f}"})
     try:
         scanner = make_scanner(
             timeout=timeout,
@@ -159,7 +159,7 @@ def diff_files(
         findings_added = [f for f in dict2.get("findings", []) if f["tag"] in added_tags]
         findings_removed = [f for f in dict1.get("findings", []) if f["tag"] in removed_tags]
 
-        return {
+        return json.dumps({
             "error": False,
             "file1": file1,
             "file2": file2,
@@ -171,37 +171,37 @@ def diff_files(
                 "total_removed": len(removed_tags),
                 "total_common": len(common_tags),
             },
-        }
+        }, ensure_ascii=False, indent=2)
     except Exception as e:
-        return {"error": True, "message": str(e), "detail": type(e).__name__}
+        return json.dumps({"error": True, "message": str(e), "detail": type(e).__name__})
 
 
-def type_file(target: str) -> Dict[str, Any]:
+def type_file(target: str) -> str:
     """Identify the type of a file (APK/DEX/ELF/etc.) via magic bytes.
 
     Args:
         target: Path to the file to identify
 
     Returns:
-        Dict with file type information
+        JSON string with file type information
     """
     if not Path(target).exists():
-        return {"error": True, "message": f"File not found: {target}"}
+        return json.dumps({"error": True, "message": f"File not found: {target}"})
     try:
         with open(target, "rb") as f:
             detected = Scanner._type_file(f)
         if detected is None:
-            return {
+            return json.dumps({
                 "error": False,
                 "file": target,
                 "type": None,
                 "message": "Unknown file type — not a recognized Android binary format",
-            }
-        return {
+            })
+        return json.dumps({
             "error": False,
             "file": target,
             "type": detected,
             "supported_types": sorted(SCANNABLE_FILE_MAGICS.keys()),
-        }
+        }, ensure_ascii=False, indent=2)
     except Exception as e:
-        return {"error": True, "message": str(e), "detail": type(e).__name__}
+        return json.dumps({"error": True, "message": str(e), "detail": type(e).__name__})

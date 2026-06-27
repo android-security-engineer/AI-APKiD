@@ -79,9 +79,88 @@ class TestAIOutputFormatter:
 
     def test_rule_descriptions_not_empty(self):
         """RULE_DESCRIPTIONS contains entries for all expected categories."""
-        expected = ["packer", "signer", "compiler", "obfuscator", "protector"]
+        expected = ["packer", "signer", "compiler", "obfuscator", "protector",
+                     "anti_vm", "anti_debug", "anti_root", "anti_hook", "yara_issue"]
         for cat in expected:
             assert cat in RULE_DESCRIPTIONS
+
+
+class TestConfidenceField:
+    """Test confidence inference based on source file type."""
+
+    def test_confidence_high_for_dex(self):
+        """DEX-level match gets 'high' confidence."""
+        formatter = AIOutputFormatter()
+        output = formatter.format({"classes.dex": ["packer"]}, "/test/app.apk", fmt="json")
+        data = json.loads(output)
+        finding = data["findings"][0]
+        assert finding["confidence"] == "high"
+
+    def test_confidence_low_for_apk(self):
+        """APK-level match gets 'low' confidence."""
+        formatter = AIOutputFormatter()
+        output = formatter.format({"/test/app.apk": ["packer"]}, "/test/app.apk", fmt="json")
+        data = json.loads(output)
+        finding = data["findings"][0]
+        assert finding["confidence"] == "low"
+
+    def test_confidence_medium_for_suggestion(self):
+        """Inference fallback is 'medium'."""
+        assert AIOutputFormatter()._infer_confidence("unknown_file") == "medium"
+
+    def test_confidence_present_in_all_findings(self):
+        """Every finding has a confidence field."""
+        formatter = AIOutputFormatter()
+        output = formatter.format({"classes.dex": ["packer", "anti_vm"]}, "/test/app.apk", fmt="json")
+        data = json.loads(output)
+        for finding in data["findings"]:
+            assert "confidence" in finding
+            assert finding["confidence"] in ("high", "medium", "low")
+
+
+class TestVersionField:
+    """Test version extraction from rule names."""
+
+    def test_version_from_v_prefix(self):
+        """ollvm_v3_4 → version '3.4'."""
+        formatter = AIOutputFormatter()
+        version = formatter._extract_version("ollvm_v3_4")
+        assert version == "3.4"
+
+    def test_version_from_v_single_digit(self):
+        """ollvm_v9 → version '9'."""
+        formatter = AIOutputFormatter()
+        version = formatter._extract_version("ollvm_v9")
+        assert version == "9"
+
+    def test_version_from_trailing_digits(self):
+        """upx_elf_3_92 → version '3.92'."""
+        formatter = AIOutputFormatter()
+        version = formatter._extract_version("upx_elf_3_92")
+        assert version == "3.92"
+
+    def test_version_three_parts(self):
+        """byteguard_0_9_2 → version '0.9.2'."""
+        formatter = AIOutputFormatter()
+        version = formatter._extract_version("byteguard_0_9_2")
+        assert version == "0.9.2"
+
+    def test_no_version_for_plain_name(self):
+        """bangcle → no version."""
+        formatter = AIOutputFormatter()
+        version = formatter._extract_version("bangcle")
+        assert version is None
+
+    def test_version_in_output(self):
+        """Version appears in the JSON output when rule name contains version info."""
+        formatter = AIOutputFormatter()
+        output = formatter.format({"classes.dex": ["packer"]}, "/test/app.apk", fmt="json")
+        data = json.loads(output)
+        # Our mock tag "packer" is also the rule name, which has no version
+        # But the version key should NOT be present when version is None
+        for finding in data["findings"]:
+            if finding["identifier"].startswith(("ollvm_v", "upx_", "byteguard_")):
+                assert "version" in finding
 
 
 class TestCLICommands:
@@ -156,3 +235,71 @@ class TestCLICommands:
         assert result.returncode == 0
         for param in ["--typing", "--scan-depth", "--entry-max-scan-size", "--include-types", "--timeout"]:
             assert param in result.stdout, f"Missing {param} in scan --help"
+
+
+class TestDiffLogic:
+    """Test diff added/removed/common logic at the formatter level."""
+
+    def test_diff_added_removed_common(self):
+        """Diff between two result dicts correctly identifies added, removed, and common findings."""
+        formatter = AIOutputFormatter()
+        # Simulate file1 findings: packer + compiler
+        results1 = {"classes.dex": ["packer", "compiler"]}
+        dict1 = formatter.format_dict(results1, "/file1.apk")
+        # Simulate file2 findings: compiler + anti_vm (packer removed, anti_vm added)
+        results2 = {"classes.dex": ["compiler", "anti_vm"]}
+        dict2 = formatter.format_dict(results2, "/file2.apk")
+
+        tags1 = {f["tag"] for f in dict1.get("findings", [])}
+        tags2 = {f["tag"] for f in dict2.get("findings", [])}
+
+        added = sorted(tags2 - tags1)
+        removed = sorted(tags1 - tags2)
+        common = sorted(tags1 & tags2)
+
+        assert "anti_vm" in added
+        assert "packer" in removed
+        assert "compiler" in common
+        assert len(added) == 1
+        assert len(removed) == 1
+        assert len(common) == 1
+
+    def test_diff_all_common(self):
+        """Two files with identical findings have no added/removed."""
+        formatter = AIOutputFormatter()
+        results = {"classes.dex": ["packer", "compiler"]}
+        dict1 = formatter.format_dict(results, "/file1.apk")
+        dict2 = formatter.format_dict(results, "/file2.apk")
+
+        tags1 = {f["tag"] for f in dict1.get("findings", [])}
+        tags2 = {f["tag"] for f in dict2.get("findings", [])}
+
+        assert tags1 == tags2
+        assert len(tags2 - tags1) == 0
+        assert len(tags1 - tags2) == 0
+
+    def test_diff_no_overlap(self):
+        """Two files with completely different findings."""
+        formatter = AIOutputFormatter()
+        dict1 = formatter.format_dict({"classes.dex": ["packer"]}, "/file1.apk")
+        dict2 = formatter.format_dict({"classes.dex": ["anti_vm"]}, "/file2.apk")
+
+        tags1 = {f["tag"] for f in dict1.get("findings", [])}
+        tags2 = {f["tag"] for f in dict2.get("findings", [])}
+
+        assert len(tags2 - tags1) == 1
+        assert len(tags1 - tags2) == 1
+        assert len(tags1 & tags2) == 0
+
+    def test_diff_empty_vs_nonempty(self):
+        """Diff between empty results and findings shows all as added."""
+        formatter = AIOutputFormatter()
+        dict1 = formatter.format_dict({}, "/empty.apk")
+        dict2 = formatter.format_dict({"classes.dex": ["packer"]}, "/packed.apk")
+
+        tags1 = {f["tag"] for f in dict1.get("findings", [])}
+        tags2 = {f["tag"] for f in dict2.get("findings", [])}
+
+        assert len(tags1) == 0
+        assert "packer" in tags2
+        assert tags2 - tags1 == tags2

@@ -557,3 +557,186 @@ rule bureau : protector
   condition:
     is_dex and any of them
 }
+
+// ---------------------------------------------------------------------------
+// DEX-level protector rules for major Chinese security SDKs
+// These provide higher-confidence detection than APK-level lib path matching.
+// ---------------------------------------------------------------------------
+
+rule yidun_dex : protector
+{
+  meta:
+    description = "NetEase Yidun (DEX-level)"
+    url         = "https://dun.163.com/product/app-protect"
+    author      = "APKiD-skills"
+
+  strings:
+    // Lcom/netease/nis/wrapper/Entry; — Yidun wrapper entry
+    $entry = {
+      00 1F 4C 63 6F 6D 2F 6E 65 74 65 61 73 65 2F 6E
+      69 73 2F 77 72 61 70 70 65 72 2F 45 6E 74 72 79
+      3B 00
+    }
+    // Lcom/netease/nis/wrapper/MyJni; — Yidun JNI bridge
+    $myjni = {
+      00 1F 4C 63 6F 6D 2F 6E 65 74 65 61 73 65 2F 6E
+      69 73 2F 77 72 61 70 70 65 72 2F 4D 79 4A 6E 69
+      3B 00
+    }
+    // Lcom/_/Application; — Yidun anti-trick stub Application
+    $anti_trick = {
+      00 14 4C 63 6F 6D 2F 5F 2F 41 70 70 6C 69 63 61
+      74 69 6F 6E 3B 00
+    }
+    // libnesec.so string reference
+    $libnesec = { 00 0A 6C 69 62 6E 65 73 65 63 2E 73 6F 00 }
+
+  condition:
+    is_dex and any of them
+}
+
+rule tongfu_shield_dex : protector
+{
+  meta:
+    description = "Tongfu Shield (DEX-level)"
+    url         = "https://www.tongfudun.com"
+    author      = "APKiD-skills"
+
+  strings:
+    // Lcom/egis/paysdk/PayegisSDK; — Tongfu/egis SDK class
+    $sdk = {
+      00 21 4C 63 6F 6D 2F 65 67 69 73 2F 70 61 79 73
+      64 6B 2F 50 61 79 65 67 69 73 53 44 4B 3B 00
+    }
+    // Lcom/egis/shield/StubApplication; — Tongfu shield stub
+    $stub = {
+      00 23 4C 63 6F 6D 2F 65 67 69 73 2F 73 68 69 65
+      6C 64 2F 53 74 75 62 41 70 70 6C 69 63 61 74 69
+      6F 6E 3B 00
+    }
+    // libegis.so string reference
+    $libegis = { 00 0A 6C 69 62 65 67 69 73 2E 73 6F 00 }
+
+  condition:
+    is_dex and any of them
+}
+
+rule nq_shield_dex : protector
+{
+  meta:
+    description = "NQ Shield (DEX-level)"
+    author      = "APKiD-skills"
+
+  strings:
+    // Lcom/nq/shield/StubApplication; — NQ shield stub
+    $stub = {
+      00 21 4C 63 6F 6D 2F 6E 71 2F 73 68 69 65 6C 64
+      2F 53 74 75 62 41 70 70 6C 69 63 61 74 69 6F 6E
+      3B 00
+    }
+    // Lcom/nq/shield/NQApplication; — NQ application
+    $nq_app = {
+      00 1F 4C 63 6F 6D 2F 6E 71 2F 73 68 69 65 6C 64
+      2F 4E 51 41 70 70 6C 69 63 61 74 69 6F 6E 3B 00
+    }
+    // libnqshield.so string reference
+    $lib = { 00 0D 6C 69 62 6E 71 73 68 69 65 6C 64 2E 73 6F 00 }
+
+  condition:
+    is_dex and any of them
+}
+
+rule venustech_dex : protector
+{
+  meta:
+    description = "Venustech (DEX-level)"
+    url         = "https://www.venustech.com.cn/new_type/ydyyaqjg/"
+    author      = "APKiD-skills"
+
+  strings:
+    // Lcom/venustech/vempsdk/StubApp; — Venustech stub
+    $stub = {
+      00 1F 4C 63 6F 6D 2F 76 65 6E 75 73 74 65 63 68
+      2F 76 65 6D 70 73 64 6B 2F 53 74 75 62 41 70 70
+      3B 00
+    }
+    // Lcom/venustech/vempsdk/VenApplication; — Venustech app
+    $ven_app = {
+      00 24 4C 63 6F 6D 2F 76 65 6E 75 73 74 65 63 68
+      2F 76 65 6D 70 73 64 6B 2F 56 65 6E 41 70 70 6C
+      69 63 61 74 69 6F 6E 3B 00
+    }
+
+  condition:
+    is_dex and any of them
+}
+
+rule dexprotectx_dex : protector
+{
+  meta:
+    description = "DexProtect X (DEX-level)"
+    url         = "https://dexprotectx.pro"
+    author      = "APKiD-skills"
+
+  strings:
+    // Lcom/dexprotectx/StubApp; — DexProtectX stub
+    $stub = {
+      00 1A 4C 63 6F 6D 2F 64 65 78 70 72 6F 74 65 63
+      74 78 2F 53 74 75 62 41 70 70 3B 00
+    }
+    // Lcom/dexshell/StubApp; — DexShell variant
+    $dexshell = {
+      00 17 4C 63 6F 6D 2F 64 65 78 73 68 65 6C 6C 2F
+      53 74 75 62 41 70 70 3B 00
+    }
+
+  condition:
+    is_dex and any of them
+}
+
+rule eversafe_dex : protector
+{
+  meta:
+    description = "Eversafe (DEX-level)"
+    url         = "https://everspin.global/products/solutions/eversafe-mobile"
+    author      = "APKiD-skills"
+
+  strings:
+    // Lcom/eversafe/StubApp; — Eversafe stub
+    $stub = {
+      00 17 4C 63 6F 6D 2F 65 76 65 72 73 61 66 65 2F
+      53 74 75 62 41 70 70 3B 00
+    }
+    // Lcom/eversafe/EversafeApplication; — Eversafe app
+    $app = {
+      00 22 4C 63 6F 6D 2F 65 76 65 72 73 61 66 65 2F
+      45 76 65 72 73 61 66 65 41 70 70 6C 69 63 61 74
+      69 6F 6E 3B 00
+    }
+
+  condition:
+    is_dex and any of them
+}
+
+rule appcamo_dex : protector
+{
+  meta:
+    description = "AppCamo (DEX-level)"
+    url         = "http://appcamo.com/s2/s2_1.php"
+    author      = "APKiD-skills"
+
+  strings:
+    // Lcom/appcamo/StubApp; — AppCamo stub
+    $stub = {
+      00 17 4C 63 6F 6D 2F 61 70 70 63 61 6D 6F 2F 53
+      74 75 62 41 70 70 3B 00
+    }
+    // Lcom/appcamo/CamoApplication; — AppCamo application
+    $camo_app = {
+      00 1F 4C 63 6F 6D 2F 61 70 70 63 61 6D 6F 2F 43
+      61 6D 6F 41 70 70 6C 69 63 61 74 69 6F 6E 3B 00
+    }
+
+  condition:
+    is_dex and any of them
+}

@@ -987,5 +987,206 @@ rule epona : protector
       is_elf and any of them
 }
 
+// ---------------------------------------------------------------------------
+// Control Flow Flattening (CFF) and Bogus Control Flow (BCF) detection
+// These detect OLLVM-style obfuscation at the code level without relying
+// on the .comment section strings (which are easily stripped by modern forks).
+// ---------------------------------------------------------------------------
+
+rule ollvm_cff_arm32 : obfuscator
+{
+  meta:
+    description = "Obfuscator-LLVM Control Flow Flattening (ARM32)"
+    url         = "https://github.com/obfuscator-llvm/obfuscator/wiki"
+    author      = "APKiD-skills"
+
+  strings:
+    // CFF dispatcher pattern: CMP + BEQ/BNE chain on a state variable
+    // Typical ARM32 flattened function prologue:
+    //   MOV R0, #state_var    ; initial state
+    //   B dispatcher
+    //   dispatcher:
+    //   CMP R0, #case1
+    //   BEQ block1
+    //   CMP R0, #case2
+    //   BEQ block2
+    //   ...
+    $cff_dispatch_arm = {
+      (03 00 A0 E1 | 00 00 A0 E1)  // MOV R0, R3 | MOV R0, R0 (state var)
+      [4-20]                        // obfuscation padding
+      (?? 00 51 E1 | ?? 00 50 E1)   // CMP R1, R0 | SUBS R0, R0, #imm
+      [0-8]
+      (?? ?? ?? 0A | ?? ?? ?? 1A)   // BEQ | BNE to basic block
+    }
+
+    // CFF state variable update + branch back to dispatcher
+    $cff_update_arm = {
+      (?? 00 80 E2 | ?? 00 81 E2)   // ADD R0, R0, #imm (update state)
+      [0-8]
+      ?? ?? ?? EA                    // B dispatcher (unconditional)
+    }
+
+  condition:
+    is_elf and elf.machine == elf.EM_ARM
+    and #cff_dispatch_arm > 3
+    and #cff_update_arm > 3
+    and not ollvm_v3_4 and not ollvm_v3_5 and not ollvm_v3_6_1
+    and not ollvm_v4_0 and not ollvm_v5_0_strenc
+    and not ollvm_v6_0 and not ollvm_v6_0_strenc
+    and not ollvm_v8 and not ollvm_v8_strenc
+    and not ollvm_v9 and not ollvm_v9_a and not ollvm_v9_strenc
+    and not ollvm_tll and not ollvm_tll_a
+    and not ollvm_armariris and not ollvm_strenc
+    and not ollvm and not ollvm_v_regex
+}
+
+rule ollvm_cff_arm64 : obfuscator
+{
+  meta:
+    description = "Obfuscator-LLVM Control Flow Flattening (ARM64)"
+    url         = "https://github.com/obfuscator-llvm/obfuscator/wiki"
+    author      = "APKiD-skills"
+
+  strings:
+    // CFF dispatcher in ARM64 uses a state variable with CMP + B.EQ/B.NE
+    //   MOV X0, #state
+    //   B dispatcher
+    // dispatcher:
+    //   CMP X0, #val1
+    //   B.EQ block1
+    //   CMP X0, #val2
+    //   B.EQ block2
+    $cff_dispatch_arm64 = {
+      (?? 00 80 D2 | E0 03 ?? AA)   // MOV X0, #imm | MOV X0, X??
+      [4-16]                        // padding
+      (1F ?? ?? 6B | 5F ?? ?? 6B | 7F ?? ?? 6B)  // CMP X?, #imm variants
+      [0-8]
+      (?? ?? ?? 54)                  // B.EQ / B.NE conditional branch
+    }
+
+    // State variable update + branch back to dispatcher
+    $cff_update_arm64 = {
+      (?? 00 00 91 | ?? 00 00 11)   // ADD X0, X0, #imm | ADD W0, W0, #imm
+      [0-8]
+      ?? ?? ?? 14                    // B dispatcher (unconditional)
+    }
+
+  condition:
+    is_elf and elf.machine == elf.EM_AARCH64
+    and #cff_dispatch_arm64 > 3
+    and #cff_update_arm64 > 3
+    and not ollvm_v3_4 and not ollvm_v3_5 and not ollvm_v3_6_1
+    and not ollvm_v4_0 and not ollvm_v5_0_strenc
+    and not ollvm_v6_0 and not ollvm_v6_0_strenc
+    and not ollvm_v8 and not ollvm_v8_strenc
+    and not ollvm_v9 and not ollvm_v9_a and not ollvm_v9_strenc
+    and not ollvm_tll and not ollvm_tll_a
+    and not ollvm_armariris and not ollvm_strenc
+    and not ollvm and not ollvm_v_regex
+    and not arxan_arm64
+    and not dexguard_native_arm64
+}
+
+rule ollvm_bcf_arm64 : obfuscator
+{
+  meta:
+    description = "Obfuscator-LLVM Bogus Control Flow (ARM64)"
+    url         = "https://github.com/obfuscator-llvm/obfuscator/wiki"
+    author      = "APKiD-skills"
+
+  strings:
+    // BCF inserts opaque predicates: always-true/false conditions that
+    // branch to dead code (bogus basic blocks). The typical pattern is:
+    //   CMP X0, #0    ; or SUBS/CBNZ
+    //   B.ne bogus    ; always taken (opaque predicate)
+    //   <real code>
+    // bogus:
+    //   <dead code / junk>
+    //   B real_next
+    //
+    // Heuristic: a high density of CBNZ/CBZ followed by short branches
+    // to blocks that immediately branch back (unreachable blocks).
+    $opaque_pred_cbnz = {
+      (?? ?? ?? 34 | ?? ?? ?? 35)    // CBZ W??, #offset | CBNZ W??, #offset
+      [4-32]                         // bogus block content
+      ?? ?? ?? 14                    // B back (unconditional)
+    }
+
+    // BCF opaque predicate using CMP + conditional branch to dead code
+    $opaque_pred_cmp = {
+      (5F ?? 00 71 | 7F ?? 00 71)    // CMP W??, #0x??
+      [0-4]
+      (?? ?? ?? 54)                  // B.EQ / B.NE
+      [4-32]                         // dead code block
+      ?? ?? ?? 14                    // B real_code
+    }
+
+  condition:
+    is_elf and elf.machine == elf.EM_AARCH64
+    and (#opaque_pred_cbnz > 8 or #opaque_pred_cmp > 8)
+    and not ollvm_v3_4 and not ollvm_v3_5 and not ollvm_v3_6_1
+    and not ollvm_v4_0 and not ollvm_v5_0_strenc
+    and not ollvm_v6_0 and not ollvm_v6_0_strenc
+    and not ollvm_v8 and not ollvm_v8_strenc
+    and not ollvm_v9 and not ollvm_v9_a and not ollvm_v9_strenc
+    and not ollvm_tll and not ollvm_tll_a
+    and not ollvm_armariris and not ollvm_strenc
+    and not ollvm and not ollvm_v_regex
+}
+
+rule hikari2_dexprotector : obfuscator
+{
+  meta:
+    description = "Hikari 2.0 (DexProtector variant)"
+    url         = "https://github.com/61bcdefg/Hikari-LLVM15"
+    author      = "APKiD-skills"
+
+  strings:
+    // Hikari 2.0 based on LLVM 15.x retains the datadiv_decode pattern
+    // but with a different prefix: "decrypt." instead of ".datadiv_decode"
+    $decrypt_func = /decrypt\.[0-9a-f]{14,16}/
+
+    // Hikari 2.0 string encryption initialization function
+    $string_crypt_init = /_Z[\d]+string_crypt_init/
+
+    // LLVM 15.x clang version string (Hikari 2.0 base)
+    $clang15 = /clang version 15\.\d+\.\d+/
+
+  condition:
+    is_elf and #decrypt_func > 3
+    and (1 of ($string_crypt_init, $clang15) or #decrypt_func > 5)
+    and not ollvm_lsposed
+}
+
+rule ollvm_string_encryption_arm64 : obfuscator
+{
+  meta:
+    description = "Obfuscator-LLVM String Encryption (ARM64, comment-stripped)"
+    url         = "https://github.com/obfuscator-llvm/obfuscator/wiki"
+    author      = "APKiD-skills"
+
+  strings:
+    // String encryption in OLLVM typically uses .datadiv_decodeXXXX functions
+    // that XOR-decrypt string data at runtime. When .comment is stripped,
+    // we can still detect these by their symbol names.
+    $datadiv_decode = /\.datadiv_decode[\d]{18,20}/
+
+    // Alternative: look for the actual XOR decryption pattern in .text
+    // Typical: load encrypted bytes → XOR with key → store decrypted
+    $xor_decrypt_arm64 = {
+      (?? 69 6B 38 | ?? 69 69 38)    // LDRB W??, [X9, X??] | LDRB W??, [X9]
+      (?? 01 0? 4A)                   // EOR W??, W??, W??
+      (8D ?? ?? ??)                   // int-to-byte not in ARM64, but SXTB/BFI
+      (?? 69 29 38 | ?? 69 69 38)    // STRB W??, [X9, X??] | STRB W??, [X9]
+    }
+
+  condition:
+    is_elf and elf.machine == elf.EM_AARCH64
+    and ($datadiv_decode or (#xor_decrypt_arm64 > 5 and not ollvm_v5_0_strenc
+         and not ollvm_v6_0_strenc and not ollvm_v8_strenc
+         and not ollvm_v9_strenc and not ollvm_tll
+         and not ollvm_armariris and not ollvm_strenc
+         and not ollvm_lsposed))
+}
 
 
